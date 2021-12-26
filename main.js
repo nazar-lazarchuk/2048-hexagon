@@ -2,17 +2,13 @@ const FIELD_SIZE_PX = 50;
 const MAX_COUNT_IN_ROW = 3;
 
 const AVAILABLE_INITIAL_VALUES = [2, 4, 8];
+const FIELD_CLASSNAME = 'field';
+const ITEM_CLASSNAME = 'item';
 
 /**
  * @typedef Coordinate
  * @property {number} x
  * @property {number} y
- */
-
-/**
- * @typedef Item
- * @property {Coordinate} coordinate
- * @property {number} value
  */
 
 /**
@@ -32,30 +28,22 @@ const generateCoordinates = () => {
 };
 
 /**
+ * @param {Coordinate} coordinate
  * @returns {HTMLElement}
  */
-const generateFieldHtml = () => {
-    const el = document.createElement('div');
-    el.classList.add('field');
-    return el;
+const generateFieldHtml = (coordinate) => {
+    const html = document.createElement('div');
+    html.classList.add(FIELD_CLASSNAME);
+    Object.assign(html.style, getPosition(coordinate));
+    return html;
 };
 
 /**
  * @param {number} value
  * @returns {String} className
  */
-const getItemClassNamesByValue = (value) => `item item-${value}`;
-
-/**
- * @param {number} initialValue
- * @returns {HTMLElement}
- */
-const generateItemHtml = (initialValue) => {
-    const el = document.createElement('div');
-    el.className = getItemClassNamesByValue(initialValue);
-    el.innerText = initialValue;
-    return el;
-};
+const getItemClassNamesByValue = (value) =>
+    `${ITEM_CLASSNAME} ${ITEM_CLASSNAME}-${value}`;
 
 /**
  * @param {Coordinate} coordinate
@@ -92,6 +80,93 @@ const getValueByRandom = () => {
     return AVAILABLE_INITIAL_VALUES[valueIndex];
 };
 
+class Item {
+    coordinate;
+    value;
+    _ref;
+
+    /**
+     * @param {Coordinate} coordinate
+     * @param {Number} value
+     * @param {HTMLElement} ref
+     */
+    constructor(coordinate, value, ref) {
+        this._ref = ref;
+        this.update(coordinate, value);
+    }
+
+    _render() {
+        Object.assign(this._ref.style, getPosition(this.coordinate));
+        this._ref.className = getItemClassNamesByValue(this.value);
+        this._ref.innerText = this.value;
+    }
+
+    /**
+     * @param {Coordinate} coordinate
+     * @param {number} value
+     */
+    update(coordinate, value = this.value) {
+        this.coordinate = coordinate;
+        this.value = value;
+        this._render();
+    }
+
+    destroy() {
+        this._ref.parentElement.remove(this._ref);
+        this._ref = null;
+    }
+}
+
+class Game {
+    _coordinates;
+    _root;
+
+    /** @type {Item[]} */
+    _items;
+
+    /**
+     * @param {Coordinate[]} coordinates
+     * @param {HTMLElement} root
+     */
+    constructor(coordinates, root) {
+        this._coordinates = coordinates;
+        this._root = root;
+        this._items = [];
+        
+        this._startGame();
+    }
+
+    get _freeCoordinates() {
+        return this._coordinates.filter((coordinate) => {
+            return this._items.every((item) => {
+                return (
+                    item.coordinate.x !== coordinate.x ||
+                    item.coordinate.y !== coordinate.y
+                );
+            });
+        });
+    }
+
+    _pushItem() {
+        const itemRef = document.createElement('div');
+
+        this._items.push(
+            new Item(
+                getCoordinateByRandom(this._freeCoordinates),
+                getValueByRandom(),
+                itemRef
+            )
+        );
+
+        this._root.append(itemRef);
+    }
+
+    _startGame() {
+        this._pushItem();
+        this._pushItem();
+    }
+}
+
 /**
  * Game init
  * @param {HTMLElement} root
@@ -99,38 +174,14 @@ const getValueByRandom = () => {
 const init = (root) => {
     const coordinates = generateCoordinates();
 
-    const fieldsHtml = coordinates.map((coordinate) => {
-        const html = generateFieldHtml();
-        Object.assign(html.style, getPosition(coordinate));
-        return html;
+    coordinates.forEach((coordinate) => {
+        root.append(generateFieldHtml(coordinate));
     });
 
-    fieldsHtml.forEach((field) => root.append(field));
+    const game = new Game(coordinates, root);
 
-    /** @type {Item} */
-    const firstItem = {
-        coordinate: getCoordinateByRandom(coordinates),
-        value: getValueByRandom(),
-    };
-    const firstItemHtml = generateItemHtml(firstItem.value);
-    Object.assign(firstItemHtml.style, getPosition(firstItem.coordinate));
-    root.append(firstItemHtml);
-
-    setInterval(() => {
-        const freeCoordinates = coordinates.filter((c) => {
-            const { x, y } = firstItem.coordinate;
-            return c.x !== x && c.y !== y;
-        });
-
-        // Changing coordinates
-        firstItem.coordinate = getCoordinateByRandom(freeCoordinates);
-        Object.assign(firstItemHtml.style, getPosition(firstItem.coordinate));
-
-        // Changing value
-        firstItem.value = getValueByRandom();
-        firstItemHtml.className = getItemClassNamesByValue(firstItem.value);
-        firstItemHtml.innerText = firstItem.value;
-    }, 1000);
+    console.log(game);
 };
 
 init(document.getElementById('app'));
+ 
