@@ -1,5 +1,5 @@
 const FIELD_SIZE_PX = 50;
-const DIAMETER = 11;
+const DIAMETER = 5;
 
 const AVAILABLE_INITIAL_VALUES = [2, 4, 8];
 const FIELD_CLASSNAME = 'field';
@@ -88,8 +88,13 @@ const getValueByRandom = () => {
 };
 
 class Item {
+    /** @type {Coordinate} */
     coordinate;
+
+    /** @type {Number} */
     value;
+
+    /** @type {HTMLElement} */
     _ref;
 
     /**
@@ -110,17 +115,22 @@ class Item {
 
     /**
      * @param {Coordinate} coordinate
-     * @param {number} value
+     * @param {Number} value
      */
-    update(coordinate, value = this.value) {
+    update(coordinate = this.coordinate, value = this.value) {
         this.coordinate = coordinate;
         this.value = value;
         this._render();
     }
 
     destroy() {
-        this._ref.parentElement.remove(this._ref);
+        this._ref.remove();
         this._ref = null;
+    }
+
+    /** @param {Item} item */
+    canBeMerged(item) {
+        return item.value === this.value;
     }
 }
 
@@ -170,6 +180,98 @@ class Game {
 
         this._root.append(itemRef);
     }
+
+    /** @param {Item} item */
+    _popItem(item) {
+        this._items.splice(this._items.indexOf(item), 1);
+        item.destroy();
+    }
+
+    /** @param {Coordinate | void} coordinate */
+    _getItemByCoordinate(coordinate) {
+        return this._items.find((item) => {
+            const { x, y } = item.coordinate;
+            return x === coordinate.x && y === coordinate.y;
+        });
+    }
+
+    /** @param {1 | -1} delta */
+    goXAxis(delta = 1) {
+        const sortDesc = (item1, item2) => {
+            return (item1.coordinate.y - item2.coordinate.y) * delta;
+        };
+
+        this._items.sort(sortDesc).forEach((item) => {
+            const { x, y } = item.coordinate;
+
+            const nextCoordinates = this._coordinates
+                .filter((coordinate) => coordinate.x === x)
+                .filter((coordinate) =>
+                    delta === 1 ? coordinate.y > y : coordinate.y < y
+                )
+                .sort((c1, c2) => (c1.y - c2.y) * delta);
+
+            /** @type {Coordinate | undefined} */
+            let coordinate;
+
+            for (let i = 0; i < nextCoordinates.length; i++) {
+                const c = nextCoordinates[i];
+                const v = this._getItemByCoordinate(c);
+
+                if (!v) {
+                    coordinate = c;
+                    continue;
+                }
+
+                if (!v.canBeMerged(item)) break;
+
+                // merge items
+                item.update({ ...v.coordinate }, v.value + item.value);
+                this._popItem(v);
+            }
+
+            if (coordinate) {
+                item.update(coordinate);
+            }
+        });
+    }
+}
+
+class GameController {
+    _game;
+
+    /** @param {Game} game */
+    constructor(game) {
+        this._game = game;
+
+        window.addEventListener('keydown', this.handleKeydown.bind(this));
+    }
+
+    destruct() {
+        window.removeEventListener('keydown', this.handleKeydown.bind(this));
+    }
+
+    /**
+     * @param {KeyboardEvent} e
+     */
+    handleKeydown(e) {
+        switch (e.key) {
+            case 'w':
+                this._game.goXAxis(-1);
+                break;
+            case 's':
+                this._game.goXAxis();
+                break;
+            case 'q':
+                break;
+            case 'd':
+                break;
+            case 'a':
+                break;
+            case 'e':
+                break;
+        }
+    }
 }
 
 /**
@@ -184,10 +286,11 @@ const init = (root) => {
     });
 
     const game = new Game(coordinates, root);
+    new GameController(game);
+
     game.start();
 
     console.log(game);
 };
 
 init(document.getElementById('app'));
- 
