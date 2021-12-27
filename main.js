@@ -1,5 +1,5 @@
 const FIELD_SIZE_PX = 50;
-const MAX_COUNT_IN_ROW = 3;
+const DIAMETER = 11;
 
 const AVAILABLE_INITIAL_VALUES = [2, 4, 8];
 const FIELD_CLASSNAME = 'field';
@@ -12,19 +12,24 @@ const ITEM_CLASSNAME = 'item';
  */
 
 /**
+ * @param {number} n the diameter of the hexagon
  * @returns {Coordinate[]}
  */
-const generateCoordinates = () => {
-    // TODO: generate by MAX_COUNT_IN_ROW
-    return [
-        { x: 0, y: 0 },
-        { x: 0, y: 1 },
-        { x: 1, y: 0 },
-        { x: 1, y: 1 },
-        { x: 1, y: 2 },
-        { x: 2, y: 1 },
-        { x: 2, y: 2 },
-    ];
+const generateCoordinates = (n) => {
+    /** @type {Coordinate[]} */
+    const result = [];
+
+    const radius = Math.floor(n / 2);
+
+    for (let x = 0; x < n; x++) {
+        for (let y = 0; y < n; y++) {
+            if (Math.abs(x - y) <= radius) {
+                result.push({ x, y });
+            }
+        }
+    }
+
+    return result;
 };
 
 /**
@@ -52,8 +57,10 @@ const getItemClassNamesByValue = (value) =>
 const getPosition = (coordinate) => {
     const { x, y } = coordinate;
 
+    const radius = Math.floor(DIAMETER / 2);
+
     // delta used for additional offset by X axis
-    const deltaX = (Math.floor(MAX_COUNT_IN_ROW / 2) - x) / 2;
+    const deltaX = (radius - x) / 2;
 
     return {
         top: `${(y + deltaX) * FIELD_SIZE_PX}px`,
@@ -131,9 +138,12 @@ class Game {
     constructor(coordinates, root) {
         this._coordinates = coordinates;
         this._root = root;
+    }
+
+    start() {
         this._items = [];
-        
-        this._startGame();
+        this._pushItem();
+        this._pushItem();
     }
 
     get _freeCoordinates() {
@@ -160,11 +170,6 @@ class Game {
 
         this._root.append(itemRef);
     }
-
-    _startGame() {
-        this._pushItem();
-        this._pushItem();
-    }
 }
 
 /**
@@ -172,13 +177,14 @@ class Game {
  * @param {HTMLElement} root
  */
 const init = (root) => {
-    const coordinates = generateCoordinates();
+    const coordinates = generateCoordinates(DIAMETER);
 
     coordinates.forEach((coordinate) => {
         root.append(generateFieldHtml(coordinate));
     });
 
     const game = new Game(coordinates, root);
+    game.start();
 
     console.log(game);
 };
