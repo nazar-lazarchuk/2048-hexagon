@@ -275,6 +275,26 @@ class Game {
             this._moveItem(item, coordinatesToMove);
         });
     }
+
+    /** @param {1 | -1} direction */
+    goZAxis(direction = 1) {
+        const sortDesc = (item1, item2) => {
+            return (item2.coordinate.y - item1.coordinate.x) * direction;
+        };
+
+        [...this._items].sort(sortDesc).forEach((item) => {
+            const { x, y } = item.coordinate;
+
+            const coordinatesToMove = this._coordinates
+                .filter((coordinate) => coordinate.y - coordinate.x === y - x)
+                .filter((coordinate) =>
+                    direction === 1 ? coordinate.x > x && coordinate.y > y : coordinate.x < x && coordinate.y < y
+                )
+                .sort((c1, c2) => (c1.y - c2.y) * direction);
+
+            this._moveItem(item, coordinatesToMove);
+        });
+    }
 }
 
 class GameController {
@@ -303,8 +323,10 @@ class GameController {
                 this._game.goYAxis();
                 break;
             case 'q':
+                this._game.goZAxis(-1);
                 break;
             case 'd':
+                this._game.goZAxis();
                 break;
             case 'a':
                 this._game.goXAxis(-1);
