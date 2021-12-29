@@ -4,6 +4,9 @@ const DIAMETER = 5;
 const AVAILABLE_INITIAL_VALUES = [2, 4, 8];
 const FIELD_CLASSNAME = 'field';
 const ITEM_CLASSNAME = 'item';
+const ITEM_DESAPEARING_DELAY = 300;
+/** @type {CSSStyleDeclaration} */
+const ITEM_DESAPEARING_STYLES = { zIndex: 0 };
 
 /**
  * @typedef Coordinate
@@ -124,8 +127,11 @@ class Item {
     }
 
     destroy() {
-        this._ref.remove();
-        this._ref = null;
+        Object.assign(this._ref.style, ITEM_DESAPEARING_STYLES);
+        setTimeout(() => {
+            this._ref.remove();
+            this._ref = null;
+        }, ITEM_DESAPEARING_DELAY);
     }
 
     /** @param {Item} item */
@@ -198,46 +204,55 @@ class Game {
         });
     }
 
-    /** @param {1 | -1} delta */
-    goXAxis(delta = 1) {
+    /**
+     * @param {Item} item
+     * @param {Coordinate[]} coordinatesToMove
+     * @returns {void}
+     */
+    _moveItem(item, coordinatesToMove) {
+        /** @type {Item | undefined} */
+        let firstItem;
+
+        /** @type {Coordinate | undefined} */
+        let lastFreeCoordinate;
+
+        for (let i = 0; i < coordinatesToMove.length; i++) {
+            const coordinate = coordinatesToMove[i];
+
+            firstItem = this._getItemByCoordinate(coordinate);
+            if (firstItem) break;
+
+            lastFreeCoordinate = coordinate;
+        }
+
+        if (firstItem && firstItem.canBeMerged(item)) {
+            item.update(firstItem.coordinate, firstItem.value + item.value);
+            this._popItem(firstItem);
+            return;
+        }
+
+        if (lastFreeCoordinate) {
+            item.update(lastFreeCoordinate);
+        }
+    }
+
+    /** @param {1 | -1} direction */
+    goYAxis(direction = 1) {
         const sortDesc = (item1, item2) => {
-            return (item2.coordinate.y - item1.coordinate.y) * delta;
+            return (item2.coordinate.y - item1.coordinate.y) * direction;
         };
 
         [...this._items].sort(sortDesc).forEach((item) => {
             const { x, y } = item.coordinate;
 
-            const nextCoordinates = this._coordinates
+            const coordinatesToMove = this._coordinates
                 .filter((coordinate) => coordinate.x === x)
                 .filter((coordinate) =>
-                    delta === 1 ? coordinate.y > y : coordinate.y < y
+                    direction === 1 ? coordinate.y > y : coordinate.y < y
                 )
-                .sort((c1, c2) => (c1.y - c2.y) * delta);
+                .sort((c1, c2) => (c1.y - c2.y) * direction);
 
-            /** @type {Item | undefined} */
-            let firstItem;
-
-            /** @type {Coordinate | undefined} */
-            let lastFreeCoordinate;
-
-            for (let i = 0; i < nextCoordinates.length; i++) {
-                const coordinate = nextCoordinates[i];
-
-                firstItem = this._getItemByCoordinate(coordinate);
-                if (firstItem) break;
-
-                lastFreeCoordinate = coordinate;
-            }
-
-            if (firstItem && firstItem.canBeMerged(item)) {
-                item.update(firstItem.coordinate, firstItem.value + item.value);
-                this._popItem(firstItem);
-                return;
-            }
-
-            if (lastFreeCoordinate) {
-                item.update(lastFreeCoordinate);
-            }
+            this._moveItem(item, coordinatesToMove);
         });
     }
 }
@@ -262,10 +277,10 @@ class GameController {
     handleKeydown(e) {
         switch (e.key) {
             case 'w':
-                this._game.goXAxis(-1);
+                this._game.goYAxis(-1);
                 break;
             case 's':
-                this._game.goXAxis();
+                this._game.goYAxis();
                 break;
             case 'q':
                 break;
