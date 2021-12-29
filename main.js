@@ -162,6 +162,66 @@ class Game {
         this._pushItem();
     }
 
+    /** @param {1 | -1} direction */
+    goYAxis(direction = 1) {
+        const sortDesc = (item1, item2) => {
+            return (item2.coordinate.y - item1.coordinate.y) * direction;
+        };
+
+        [...this._items].sort(sortDesc).forEach((item) => {
+            const { x, y } = item.coordinate;
+
+            const coordinatesToMove = this._coordinates
+                .filter((coordinate) => coordinate.x === x)
+                .filter((coordinate) =>
+                    direction === 1 ? coordinate.y > y : coordinate.y < y
+                )
+                .sort((c1, c2) => (c1.y - c2.y) * direction);
+
+            this._moveItem(item, coordinatesToMove);
+        });
+    }
+
+    /** @param {1 | -1} direction */
+    goXAxis(direction = 1) {
+        const sortDesc = (item1, item2) => {
+            return (item2.coordinate.x - item1.coordinate.x) * direction;
+        };
+
+        [...this._items].sort(sortDesc).forEach((item) => {
+            const { x, y } = item.coordinate;
+
+            const coordinatesToMove = this._coordinates
+                .filter((coordinate) => coordinate.y === y)
+                .filter((coordinate) =>
+                    direction === 1 ? coordinate.x > x : coordinate.x < x
+                )
+                .sort((c1, c2) => (c1.x - c2.x) * direction);
+
+            this._moveItem(item, coordinatesToMove);
+        });
+    }
+
+    /** @param {1 | -1} direction */
+    goZAxis(direction = 1) {
+        const sortDesc = (item1, item2) => {
+            return (item2.coordinate.y - item1.coordinate.x) * direction;
+        };
+
+        [...this._items].sort(sortDesc).forEach((item) => {
+            const { x, y } = item.coordinate;
+
+            const coordinatesToMove = this._coordinates
+                .filter((coordinate) => coordinate.y - coordinate.x === y - x)
+                .filter((coordinate) =>
+                    direction === 1 ? coordinate.x > x && coordinate.y > y : coordinate.x < x && coordinate.y < y
+                )
+                .sort((c1, c2) => (c1.y - c2.y) * direction);
+
+            this._moveItem(item, coordinatesToMove);
+        });
+    }
+
     get _freeCoordinates() {
         return this._coordinates.filter((coordinate) => {
             return this._items.every((item) => {
@@ -235,66 +295,6 @@ class Game {
             item.update(lastFreeCoordinate);
         }
     }
-
-    /** @param {1 | -1} direction */
-    goYAxis(direction = 1) {
-        const sortDesc = (item1, item2) => {
-            return (item2.coordinate.y - item1.coordinate.y) * direction;
-        };
-
-        [...this._items].sort(sortDesc).forEach((item) => {
-            const { x, y } = item.coordinate;
-
-            const coordinatesToMove = this._coordinates
-                .filter((coordinate) => coordinate.x === x)
-                .filter((coordinate) =>
-                    direction === 1 ? coordinate.y > y : coordinate.y < y
-                )
-                .sort((c1, c2) => (c1.y - c2.y) * direction);
-
-            this._moveItem(item, coordinatesToMove);
-        });
-    }
-
-    /** @param {1 | -1} direction */
-    goXAxis(direction = 1) {
-        const sortDesc = (item1, item2) => {
-            return (item2.coordinate.x - item1.coordinate.x) * direction;
-        };
-
-        [...this._items].sort(sortDesc).forEach((item) => {
-            const { x, y } = item.coordinate;
-
-            const coordinatesToMove = this._coordinates
-                .filter((coordinate) => coordinate.y === y)
-                .filter((coordinate) =>
-                    direction === 1 ? coordinate.x > x : coordinate.x < x
-                )
-                .sort((c1, c2) => (c1.x - c2.x) * direction);
-
-            this._moveItem(item, coordinatesToMove);
-        });
-    }
-
-    /** @param {1 | -1} direction */
-    goZAxis(direction = 1) {
-        const sortDesc = (item1, item2) => {
-            return (item2.coordinate.y - item1.coordinate.x) * direction;
-        };
-
-        [...this._items].sort(sortDesc).forEach((item) => {
-            const { x, y } = item.coordinate;
-
-            const coordinatesToMove = this._coordinates
-                .filter((coordinate) => coordinate.y - coordinate.x === y - x)
-                .filter((coordinate) =>
-                    direction === 1 ? coordinate.x > x && coordinate.y > y : coordinate.x < x && coordinate.y < y
-                )
-                .sort((c1, c2) => (c1.y - c2.y) * direction);
-
-            this._moveItem(item, coordinatesToMove);
-        });
-    }
 }
 
 class GameController {
@@ -353,8 +353,6 @@ const init = (root) => {
     new GameController(game);
 
     game.start();
-
-    console.log(game);
 };
 
 init(document.getElementById('app'));

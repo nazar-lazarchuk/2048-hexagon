@@ -40,3 +40,12 @@ html {
 .item-8 {
     background: orange;
 }
+.item-16 {
+    background: green;
+}
+.item-32 {
+    background: blue;
+}
+.item-64 {
+    background: purple;
+}
