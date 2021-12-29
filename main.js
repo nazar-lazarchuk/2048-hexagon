@@ -187,7 +187,10 @@ class Game {
         item.destroy();
     }
 
-    /** @param {Coordinate | void} coordinate */
+    /**
+     * @param {Coordinate} coordinate
+     * @returns {Item | undefined}
+     */
     _getItemByCoordinate(coordinate) {
         return this._items.find((item) => {
             const { x, y } = item.coordinate;
@@ -198,10 +201,10 @@ class Game {
     /** @param {1 | -1} delta */
     goXAxis(delta = 1) {
         const sortDesc = (item1, item2) => {
-            return (item1.coordinate.y - item2.coordinate.y) * delta;
+            return (item2.coordinate.y - item1.coordinate.y) * delta;
         };
 
-        this._items.sort(sortDesc).forEach((item) => {
+        [...this._items].sort(sortDesc).forEach((item) => {
             const { x, y } = item.coordinate;
 
             const nextCoordinates = this._coordinates
@@ -211,27 +214,29 @@ class Game {
                 )
                 .sort((c1, c2) => (c1.y - c2.y) * delta);
 
+            /** @type {Item | undefined} */
+            let firstItem;
+
             /** @type {Coordinate | undefined} */
-            let coordinate;
+            let lastFreeCoordinate;
 
             for (let i = 0; i < nextCoordinates.length; i++) {
-                const c = nextCoordinates[i];
-                const v = this._getItemByCoordinate(c);
+                const coordinate = nextCoordinates[i];
 
-                if (!v) {
-                    coordinate = c;
-                    continue;
-                }
+                firstItem = this._getItemByCoordinate(coordinate);
+                if (firstItem) break;
 
-                if (!v.canBeMerged(item)) break;
-
-                // merge items
-                item.update({ ...v.coordinate }, v.value + item.value);
-                this._popItem(v);
+                lastFreeCoordinate = coordinate;
             }
 
-            if (coordinate) {
-                item.update(coordinate);
+            if (firstItem && firstItem.canBeMerged(item)) {
+                item.update(firstItem.coordinate, firstItem.value + item.value);
+                this._popItem(firstItem);
+                return;
+            }
+
+            if (lastFreeCoordinate) {
+                item.update(lastFreeCoordinate);
             }
         });
     }
