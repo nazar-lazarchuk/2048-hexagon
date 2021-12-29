@@ -309,16 +309,24 @@ class Game {
 
 class GameController {
     _game;
+    _root;
 
     /** @param {Game} game */
     constructor(game) {
         this._game = game;
-
-        window.addEventListener('keydown', this.handleKeydown.bind(this));
     }
 
-    destruct() {
-        window.removeEventListener('keydown', this.handleKeydown.bind(this));
+    /**
+     * @param {HTMLElement} root 
+     */
+    activate(root) {
+        this._root = root;
+        this._root.addEventListener('keydown', this.handleKeydown.bind(this));
+    }
+
+    deactivate() {
+        this._root.removeEventListener('keydown', this.handleKeydown.bind(this));
+        this._root = null;
     }
 
     /**
@@ -360,9 +368,10 @@ const init = (root) => {
     });
 
     const game = new Game(coordinates, root);
-    new GameController(game);
-
     game.start();
+
+    const controller = new GameController(game);
+    controller.activate(window);
 };
 
 init(document.getElementById('app'));
