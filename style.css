@@ -29,6 +29,13 @@ html {
     text-align: center;
     transition: all 0.3s ease-in-out;
     z-index: 5;
+    animation: zoom-in 1 0.3s ease-in-out;
+}
+
+@keyframes zoom-in {
+    from {
+        transform: scale(0);
+    }
 }
 
 .item-2 {

@@ -180,6 +180,7 @@ class Game {
 
             this._moveItem(item, coordinatesToMove);
         });
+        this._continue();
     }
 
     /** @param {1 | -1} direction */
@@ -200,6 +201,7 @@ class Game {
 
             this._moveItem(item, coordinatesToMove);
         });
+        this._continue();
     }
 
     /** @param {1 | -1} direction */
@@ -220,6 +222,7 @@ class Game {
 
             this._moveItem(item, coordinatesToMove);
         });
+        this._continue();
     }
 
     get _freeCoordinates() {
@@ -231,6 +234,13 @@ class Game {
                 );
             });
         });
+    }
+
+    _continue() {
+        if (this._freeCoordinates.length === 0) {
+            return alert('Кінець гри!');
+        }
+        this._pushItem();
     }
 
     _pushItem() {
