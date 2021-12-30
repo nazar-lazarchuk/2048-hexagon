@@ -1,12 +1,16 @@
-const FIELD_SIZE_PX = 50;
-const DIAMETER = 5;
+const SETTINGS = {
+    diameter: 5,
+    initialValues: [2, 4, 8],
+};
 
-const AVAILABLE_INITIAL_VALUES = [2, 4, 8];
-const FIELD_CLASSNAME = 'field';
-const ITEM_CLASSNAME = 'item';
-const ITEM_DESAPEARING_DELAY = 300;
-/** @type {CSSStyleDeclaration} */
-const ITEM_DESAPEARING_STYLES = { zIndex: 0 };
+const VIEW_SETTINGS = {
+    fieldSizePx: 50,
+    fieldClassName: 'field',
+    itemClassName: 'item',
+    getItemClassNameByValue: (value) => `item-${value}`,
+    itemRemovingDelay: 300,
+    itemStylesBeforeRemove: { zIndex: 0 },
+};
 
 /**
  * @typedef Coordinate
@@ -41,17 +45,10 @@ const generateCoordinates = (n) => {
  */
 const generateFieldHtml = (coordinate) => {
     const html = document.createElement('div');
-    html.classList.add(FIELD_CLASSNAME);
+    html.classList.add(VIEW_SETTINGS.fieldClassName);
     Object.assign(html.style, getPosition(coordinate));
     return html;
 };
-
-/**
- * @param {number} value
- * @returns {String} className
- */
-const getItemClassNamesByValue = (value) =>
-    `${ITEM_CLASSNAME} ${ITEM_CLASSNAME}-${value}`;
 
 /**
  * @param {Coordinate} coordinate
@@ -59,15 +56,16 @@ const getItemClassNamesByValue = (value) =>
  */
 const getPosition = (coordinate) => {
     const { x, y } = coordinate;
+    const fieldSizePx = VIEW_SETTINGS.fieldSizePx || 50;
 
-    const radius = Math.floor(DIAMETER / 2);
+    const radius = Math.floor(SETTINGS.diameter / 2);
 
     // delta used for additional offset by X axis
     const deltaX = (radius - x) / 2;
 
     return {
-        top: `${(y + deltaX) * FIELD_SIZE_PX}px`,
-        left: `${x * FIELD_SIZE_PX}px`,
+        top: `${(y + deltaX) * fieldSizePx}px`,
+        left: `${x * fieldSizePx}px`,
     };
 };
 
@@ -85,9 +83,9 @@ const getCoordinateByRandom = (freeCoordinates) => {
  */
 const getValueByRandom = () => {
     const valueIndex = Math.floor(
-        Math.random() * AVAILABLE_INITIAL_VALUES.length
+        Math.random() * SETTINGS.initialValues.length
     );
-    return AVAILABLE_INITIAL_VALUES[valueIndex];
+    return SETTINGS.initialValues[valueIndex];
 };
 
 class Item {
@@ -112,7 +110,9 @@ class Item {
 
     _render() {
         Object.assign(this._ref.style, getPosition(this.coordinate));
-        this._ref.className = getItemClassNamesByValue(this.value);
+        const { itemClassName, getItemClassNameByValue } = VIEW_SETTINGS;
+        const classNameByValue = getItemClassNameByValue(this.value);
+        this._ref.className = `${itemClassName} ${classNameByValue}`;
         this._ref.innerText = this.value;
     }
 
@@ -127,11 +127,11 @@ class Item {
     }
 
     destroy() {
-        Object.assign(this._ref.style, ITEM_DESAPEARING_STYLES);
+        Object.assign(this._ref.style, VIEW_SETTINGS.itemStylesBeforeRemove);
         setTimeout(() => {
             this._ref.remove();
             this._ref = null;
-        }, ITEM_DESAPEARING_DELAY);
+        }, VIEW_SETTINGS.itemRemovingDelay || 0);
     }
 
     /** @param {Item} item */
@@ -216,7 +216,9 @@ class Game {
             const coordinatesToMove = this._coordinates
                 .filter((coordinate) => coordinate.y - coordinate.x === y - x)
                 .filter((coordinate) =>
-                    direction === 1 ? coordinate.x > x && coordinate.y > y : coordinate.x < x && coordinate.y < y
+                    direction === 1
+                        ? coordinate.x > x && coordinate.y > y
+                        : coordinate.x < x && coordinate.y < y
                 )
                 .sort((c1, c2) => (c1.y - c2.y) * direction);
 
@@ -317,7 +319,7 @@ class GameController {
     }
 
     /**
-     * @param {HTMLElement} root 
+     * @param {HTMLElement} root
      */
     activate(root) {
         this._root = root;
@@ -325,7 +327,10 @@ class GameController {
     }
 
     deactivate() {
-        this._root.removeEventListener('keydown', this.handleKeydown.bind(this));
+        this._root.removeEventListener(
+            'keydown',
+            this.handleKeydown.bind(this)
+        );
         this._root = null;
     }
 
@@ -361,7 +366,7 @@ class GameController {
  * @param {HTMLElement} root
  */
 const init = (root) => {
-    const coordinates = generateCoordinates(DIAMETER);
+    const coordinates = generateCoordinates(SETTINGS.diameter);
 
     coordinates.forEach((coordinate) => {
         root.append(generateFieldHtml(coordinate));
