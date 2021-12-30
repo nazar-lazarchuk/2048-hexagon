@@ -18,6 +18,83 @@ const VIEW_SETTINGS = {
  * @property {number} y
  */
 
+class ItemView {
+    _ref;
+
+    /**
+     * @param {HTMLElement} ref
+     * @param {Number} initialValue
+     * @param {Coordinate} initialCoordinate
+     */
+    constructor(ref, initialValue, initialCoordinate) {
+        this._ref = ref;
+        this.update(initialValue, initialCoordinate);
+    }
+
+    /**
+     *
+     * @param {Number} value
+     * @param {Coordinate} coordinate
+     */
+    update(value, coordinate) {
+        this._ref.className = [
+            VIEW_SETTINGS.itemClassName,
+            VIEW_SETTINGS.getItemClassNameByValue(value),
+        ].join(' ');
+        this._ref.innerText = value;
+        Object.assign(this._ref.style, getPosition(coordinate));
+    }
+
+    destroy() {
+        Object.assign(this._ref.style, VIEW_SETTINGS.itemStylesBeforeRemove);
+        setTimeout(() => {
+            this._ref.remove();
+            this._ref = null;
+        }, VIEW_SETTINGS.itemRemovingDelay || 0);
+    }
+}
+
+class ItemModel {
+    coordinate;
+    value;
+    onUpdate;
+    onDestroy;
+
+    /**
+     * @param {Coordinate} coordinate
+     * @param {Number} value
+     * @param {(value: Number, coordinate: Coordinate) => void} onUpdate
+     * @param {() => void} onDestroy
+     */
+    constructor(coordinate, value, onUpdate, onDestroy) {
+        this.coordinate = coordinate;
+        this.value = value;
+        this.onUpdate = onUpdate;
+        this.onDestroy = onDestroy;
+    }
+
+    /**
+     * @param {Coordinate} coordinate
+     * @param {Number} value
+     */
+    update(coordinate = this.coordinate, value = this.value) {
+        this.coordinate = coordinate;
+        this.value = value;
+        this.onUpdate(value, coordinate);
+    }
+
+    destroy() {
+        this.onDestroy();
+    }
+
+    /**
+     * @param {Item} item
+     */
+    canBeMerged(item) {
+        return item.value === this.value;
+    }
+}
+
 /**
  * @param {number} n the diameter of the hexagon
  * @returns {Coordinate[]}
@@ -78,9 +155,6 @@ const getCoordinateByRandom = (freeCoordinates) => {
     return { ...freeCoordinates[coordinateIndex] };
 };
 
-/**
- * @returns {Item}
- */
 const getValueByRandom = () => {
     const valueIndex = Math.floor(
         Math.random() * SETTINGS.initialValues.length
@@ -88,63 +162,11 @@ const getValueByRandom = () => {
     return SETTINGS.initialValues[valueIndex];
 };
 
-class Item {
-    /** @type {Coordinate} */
-    coordinate;
-
-    /** @type {Number} */
-    value;
-
-    /** @type {HTMLElement} */
-    _ref;
-
-    /**
-     * @param {Coordinate} coordinate
-     * @param {Number} value
-     * @param {HTMLElement} ref
-     */
-    constructor(coordinate, value, ref) {
-        this._ref = ref;
-        this.update(coordinate, value);
-    }
-
-    _render() {
-        Object.assign(this._ref.style, getPosition(this.coordinate));
-        const { itemClassName, getItemClassNameByValue } = VIEW_SETTINGS;
-        const classNameByValue = getItemClassNameByValue(this.value);
-        this._ref.className = `${itemClassName} ${classNameByValue}`;
-        this._ref.innerText = this.value;
-    }
-
-    /**
-     * @param {Coordinate} coordinate
-     * @param {Number} value
-     */
-    update(coordinate = this.coordinate, value = this.value) {
-        this.coordinate = coordinate;
-        this.value = value;
-        this._render();
-    }
-
-    destroy() {
-        Object.assign(this._ref.style, VIEW_SETTINGS.itemStylesBeforeRemove);
-        setTimeout(() => {
-            this._ref.remove();
-            this._ref = null;
-        }, VIEW_SETTINGS.itemRemovingDelay || 0);
-    }
-
-    /** @param {Item} item */
-    canBeMerged(item) {
-        return item.value === this.value;
-    }
-}
-
 class Game {
     _coordinates;
     _root;
 
-    /** @type {Item[]} */
+    /** @type {ItemModel[]} */
     _items;
 
     /**
@@ -246,20 +268,22 @@ class Game {
     }
 
     _pushItem() {
-        const itemRef = document.createElement('div');
-
-        this._items.push(
-            new Item(
-                getCoordinateByRandom(this._freeCoordinates),
-                getValueByRandom(),
-                itemRef
-            )
+        const ref = document.createElement('div');
+        const initialCoordinate = getCoordinateByRandom(this._freeCoordinates);
+        const initialValue = getValueByRandom();
+        const itemView = new ItemView(ref, initialValue, initialCoordinate);
+        const itemModel = new ItemModel(
+            initialCoordinate,
+            initialValue,
+            (value, coordinate) => itemView.update(value, coordinate),
+            () => itemView.destroy(),
         );
 
-        this._root.append(itemRef);
+        this._root.append(ref);
+        this._items.push(itemModel);
     }
 
-    /** @param {Item} item */
+    /** @param {ItemModel} item */
     _popItem(item) {
         this._items.splice(this._items.indexOf(item), 1);
         item.destroy();
@@ -267,7 +291,7 @@ class Game {
 
     /**
      * @param {Coordinate} coordinate
-     * @returns {Item | undefined}
+     * @returns {ItemModel | undefined}
      */
     _getItemByCoordinate(coordinate) {
         return this._items.find((item) => {
@@ -277,12 +301,12 @@ class Game {
     }
 
     /**
-     * @param {Item} item
+     * @param {ItemModel} item
      * @param {Coordinate[]} coordinatesToMove
      * @returns {void}
      */
     _moveItem(item, coordinatesToMove) {
-        /** @type {Item | undefined} */
+        /** @type {ItemModel | undefined} */
         let firstItem;
 
         /** @type {Coordinate | undefined} */
